@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: the-woolly-affairs
+    env: node
+    region: ohio
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
