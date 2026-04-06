@@ -1,46 +1,61 @@
-import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
-import Enquiry from '@/models/Enquiry';
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export async function POST(req: Request) {
   try {
-    // 1. Connect to the database
-    await dbConnect();
+    const body = await req.json()
 
-    // 2. Parse the request body
-    const body = await req.json();
-    const { name, email, phone, company, occasion, message } = body;
 
-    // 3. Basic validation
+    const { name, email, phone, company, occasion, message } = body
+
+    // ✅ Validation
     if (!name || !email || !phone || !message) {
       return NextResponse.json(
-        { error: 'Name, Email, Phone, and Message are required fields.' },
+        { error: 'Name, Email, Phone, and Message are required.' },
         { status: 400 }
-      );
+      )
     }
 
-    // 4. Create a new enquiry document
-    const newEnquiry = new Enquiry({
-      name,
-      email,
-      phone,
-      company,
-      occasion,
-      message,
-    });
+    // ✅ Insert into Supabase
+    const { error } = await supabase.from('enquiries').insert([
+      {
+        name,
+        email,
+        phone,
+        company: company || null,
+        occasion: occasion || null,
+        message,
+      },
+    ])
 
-    // 5. Save to MongoDB
-    await newEnquiry.save();
+    if (error) {
+      console.error('Supabase error:', error)
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json(
-      { success: true, message: 'Enquiry submitted successfully.' },
+      { success: true },
       { status: 201 }
-    );
-  } catch (error: any) {
-    console.error('Error submitting enquiry:', error);
+    )
+
+
+  } catch (err) {
+    console.error('API error:', err)
+
+
     return NextResponse.json(
-      { error: 'Failed to submit enquiry. Please try again later.' },
+      { error: 'Server error' },
       { status: 500 }
-    );
+    )
+
+
   }
 }
